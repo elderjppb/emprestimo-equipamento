@@ -1,0 +1,381 @@
+{
+  "info": {
+    "name": "Empréstimo de Equipamentos",
+    "description": "Endpoints e cenários de teste do sistema de empréstimo de equipamentos. Todas as requisições passam pela API Gateway. Execute as pastas na ordem.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "gateway", "value": "http://localhost:8080" },
+    { "key": "idInexistente", "value": "00000000-0000-0000-0000-000000000000" },
+    { "key": "usuarioId", "value": "" },
+    { "key": "equipamentoId", "value": "" },
+    { "key": "emprestimoId", "value": "" },
+    { "key": "email", "value": "" },
+    { "key": "matricula", "value": "" },
+    { "key": "patrimonio", "value": "" },
+    { "key": "reservaId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1. Usuários",
+      "item": [
+        {
+          "name": "Criar usuário",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const sufixo = Date.now();",
+                  "pm.collectionVariables.set('email', `ana.${sufixo}@escola.edu`);",
+                  "pm.collectionVariables.set('matricula', `MAT${sufixo}`);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('usuarioId', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"nome\": \"Ana Souza\",\n  \"email\": \"{{email}}\",\n  \"matricula\": \"{{matricula}}\"\n}" },
+            "url": "{{gateway}}/api/v1/usuarios"
+          }
+        },
+        {
+          "name": "Consultar usuário por ID",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }],
+          "request": { "method": "GET", "url": "{{gateway}}/api/v1/usuarios/{{usuarioId}}" }
+        },
+        {
+          "name": "E-mail duplicado (409)",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 409', () => pm.response.to.have.status(409));"] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"nome\": \"Outro Usuário\",\n  \"email\": \"{{email}}\",\n  \"matricula\": \"OUTRA-MAT\"\n}" },
+            "url": "{{gateway}}/api/v1/usuarios"
+          }
+        },
+        {
+          "name": "Matrícula duplicada (409)",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 409', () => pm.response.to.have.status(409));"] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"nome\": \"Outro Usuário\",\n  \"email\": \"outro.{{matricula}}@escola.edu\",\n  \"matricula\": \"{{matricula}}\"\n}" },
+            "url": "{{gateway}}/api/v1/usuarios"
+          }
+        },
+        {
+          "name": "Dados inválidos (400)",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 400', () => pm.response.to.have.status(400));"] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"nome\": \"\",\n  \"email\": \"email-invalido\",\n  \"matricula\": \"\"\n}" },
+            "url": "{{gateway}}/api/v1/usuarios"
+          }
+        },
+        {
+          "name": "JSON inválido (400)",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 400', () => pm.response.to.have.status(400));"] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{ \"nome\": " },
+            "url": "{{gateway}}/api/v1/usuarios"
+          }
+        },
+        {
+          "name": "ID mal formatado (400)",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 400', () => pm.response.to.have.status(400));"] } }],
+          "request": { "method": "GET", "url": "{{gateway}}/api/v1/usuarios/abc" }
+        },
+        {
+          "name": "Usuário inexistente (404)",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 404', () => pm.response.to.have.status(404));"] } }],
+          "request": { "method": "GET", "url": "{{gateway}}/api/v1/usuarios/{{idInexistente}}" }
+        }
+      ]
+    },
+    {
+      "name": "2. Equipamentos",
+      "item": [
+        {
+          "name": "Criar equipamento",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": { "exec": ["pm.collectionVariables.set('patrimonio', `PAT-${Date.now()}`);"] }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Nasce disponível', () => pm.expect(pm.response.json().disponivel).to.eql(true));",
+                  "pm.collectionVariables.set('equipamentoId', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"nome\": \"Notebook Dell Latitude\",\n  \"tipo\": \"NOTEBOOK\",\n  \"patrimonio\": \"{{patrimonio}}\"\n}" },
+            "url": "{{gateway}}/api/v1/equipamentos"
+          }
+        },
+        {
+          "name": "Consultar equipamento por ID",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }],
+          "request": { "method": "GET", "url": "{{gateway}}/api/v1/equipamentos/{{equipamentoId}}" }
+        },
+        {
+          "name": "Listar equipamentos disponíveis",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Contém o equipamento criado', () => pm.expect(pm.response.json().map(e => e.id)).to.include(pm.collectionVariables.get('equipamentoId')));"
+                ]
+              }
+            }
+          ],
+          "request": { "method": "GET", "url": "{{gateway}}/api/v1/equipamentos/disponiveis" }
+        },
+        {
+          "name": "Patrimônio duplicado (409)",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 409', () => pm.response.to.have.status(409));"] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"nome\": \"Tablet Samsung\",\n  \"tipo\": \"TABLET\",\n  \"patrimonio\": \"{{patrimonio}}\"\n}" },
+            "url": "{{gateway}}/api/v1/equipamentos"
+          }
+        },
+        {
+          "name": "Dados inválidos (400)",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 400', () => pm.response.to.have.status(400));"] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"nome\": \"\",\n  \"tipo\": \"\",\n  \"patrimonio\": \"\"\n}" },
+            "url": "{{gateway}}/api/v1/equipamentos"
+          }
+        },
+        {
+          "name": "Equipamento inexistente (404)",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 404', () => pm.response.to.have.status(404));"] } }],
+          "request": { "method": "GET", "url": "{{gateway}}/api/v1/equipamentos/{{idInexistente}}" }
+        }
+      ]
+    },
+    {
+      "name": "3. Empréstimos",
+      "item": [
+        {
+          "name": "Solicitar empréstimo (201)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Status ATIVO', () => pm.expect(pm.response.json().status).to.eql('ATIVO'));",
+                  "pm.collectionVariables.set('emprestimoId', pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"usuarioId\": \"{{usuarioId}}\",\n  \"equipamentoId\": \"{{equipamentoId}}\"\n}" },
+            "url": "{{gateway}}/api/v1/emprestimos"
+          }
+        },
+        {
+          "name": "Equipamento indisponível após empréstimo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Indisponível', () => pm.expect(pm.response.json().disponivel).to.eql(false));"
+                ]
+              }
+            }
+          ],
+          "request": { "method": "GET", "url": "{{gateway}}/api/v1/equipamentos/{{equipamentoId}}" }
+        },
+        {
+          "name": "Equipamento ocupado (409)",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 409', () => pm.response.to.have.status(409));"] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"usuarioId\": \"{{usuarioId}}\",\n  \"equipamentoId\": \"{{equipamentoId}}\"\n}" },
+            "url": "{{gateway}}/api/v1/emprestimos"
+          }
+        },
+        {
+          "name": "Usuário inexistente (404)",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 404', () => pm.response.to.have.status(404));"] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"usuarioId\": \"{{idInexistente}}\",\n  \"equipamentoId\": \"{{equipamentoId}}\"\n}" },
+            "url": "{{gateway}}/api/v1/emprestimos"
+          }
+        },
+        {
+          "name": "Equipamento inexistente (404)",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 404', () => pm.response.to.have.status(404));"] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"usuarioId\": \"{{usuarioId}}\",\n  \"equipamentoId\": \"{{idInexistente}}\"\n}" },
+            "url": "{{gateway}}/api/v1/emprestimos"
+          }
+        },
+        {
+          "name": "Dados inválidos (400)",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 400', () => pm.response.to.have.status(400));"] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{}" },
+            "url": "{{gateway}}/api/v1/emprestimos"
+          }
+        },
+        {
+          "name": "Consultar empréstimo por ID",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }],
+          "request": { "method": "GET", "url": "{{gateway}}/api/v1/emprestimos/{{emprestimoId}}" }
+        },
+        {
+          "name": "Consultar empréstimos do usuário",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Contém o empréstimo', () => pm.expect(pm.response.json().map(e => e.id)).to.include(pm.collectionVariables.get('emprestimoId')));"
+                ]
+              }
+            }
+          ],
+          "request": { "method": "GET", "url": "{{gateway}}/api/v1/emprestimos/usuarios/{{usuarioId}}" }
+        },
+        {
+          "name": "Empréstimo inexistente (404)",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 404', () => pm.response.to.have.status(404));"] } }],
+          "request": { "method": "GET", "url": "{{gateway}}/api/v1/emprestimos/{{idInexistente}}" }
+        },
+        {
+          "name": "Registrar devolução (200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Status DEVOLVIDO', () => pm.expect(pm.response.json().status).to.eql('DEVOLVIDO'));",
+                  "pm.test('Data de devolução preenchida', () => pm.expect(pm.response.json().dataDevolucao).to.not.be.null);"
+                ]
+              }
+            }
+          ],
+          "request": { "method": "PATCH", "url": "{{gateway}}/api/v1/emprestimos/{{emprestimoId}}/devolucao" }
+        },
+        {
+          "name": "Equipamento disponível após devolução",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Disponível', () => pm.expect(pm.response.json().disponivel).to.eql(true));"
+                ]
+              }
+            }
+          ],
+          "request": { "method": "GET", "url": "{{gateway}}/api/v1/equipamentos/{{equipamentoId}}" }
+        },
+        {
+          "name": "Devolução repetida (409)",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 409', () => pm.response.to.have.status(409));"] } }],
+          "request": { "method": "PATCH", "url": "{{gateway}}/api/v1/emprestimos/{{emprestimoId}}/devolucao" }
+        },
+        {
+          "name": "Devolução de empréstimo inexistente (404)",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 404', () => pm.response.to.have.status(404));"] } }],
+          "request": { "method": "PATCH", "url": "{{gateway}}/api/v1/emprestimos/{{idInexistente}}/devolucao" }
+        }
+      ]
+    },
+    {
+      "name": "4. Reservas (API interna usada pelo msemprestimo)",
+      "item": [
+        {
+          "name": "Reservar equipamento (200)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": { "exec": ["pm.collectionVariables.set('reservaId', pm.variables.replaceIn('{{$guid}}'));"] }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Indisponível', () => pm.expect(pm.response.json().disponivel).to.eql(false));"
+                ]
+              }
+            }
+          ],
+          "request": { "method": "PUT", "url": "{{gateway}}/api/v1/equipamentos/{{equipamentoId}}/reservas/{{reservaId}}" }
+        },
+        {
+          "name": "Repetir a mesma reserva (200, idempotente)",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 200', () => pm.response.to.have.status(200));"] } }],
+          "request": { "method": "PUT", "url": "{{gateway}}/api/v1/equipamentos/{{equipamentoId}}/reservas/{{reservaId}}" }
+        },
+        {
+          "name": "Reserva de outro empréstimo (409)",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 409', () => pm.response.to.have.status(409));"] } }],
+          "request": { "method": "PUT", "url": "{{gateway}}/api/v1/equipamentos/{{equipamentoId}}/reservas/{{idInexistente}}" }
+        },
+        {
+          "name": "Liberar reserva (204)",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 204', () => pm.response.to.have.status(204));"] } }],
+          "request": { "method": "DELETE", "url": "{{gateway}}/api/v1/equipamentos/{{equipamentoId}}/reservas/{{reservaId}}" }
+        },
+        {
+          "name": "Repetir a liberação (204, idempotente)",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 204', () => pm.response.to.have.status(204));"] } }],
+          "request": { "method": "DELETE", "url": "{{gateway}}/api/v1/equipamentos/{{equipamentoId}}/reservas/{{reservaId}}" }
+        },
+        {
+          "name": "Reservar equipamento inexistente (404)",
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('Status 404', () => pm.response.to.have.status(404));"] } }],
+          "request": { "method": "PUT", "url": "{{gateway}}/api/v1/equipamentos/{{idInexistente}}/reservas/{{reservaId}}" }
+        }
+      ]
+    }
+  ]
+}
