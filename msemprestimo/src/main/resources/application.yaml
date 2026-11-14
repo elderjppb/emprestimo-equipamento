@@ -28,3 +28,33 @@ eureka:
   instance:
     hostname: localhost
     instance-id: ${spring.application.name}:${random.value}
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      equipamentoService:
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 5
+        minimumNumberOfCalls: 3
+        failureRateThreshold: 50
+        waitDurationInOpenState: 30s
+        permittedNumberOfCallsInHalfOpenState: 2
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        registerHealthIndicator: true
+        recordExceptions:
+          - feign.RetryableException
+          - feign.FeignException$FeignServerException
+        ignoreExceptions:
+          - feign.FeignException$FeignClientException
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,circuitbreakers,circuitbreakerevents
+  endpoint:
+    health:
+      show-details: always
+  health:
+    circuitbreakers:
+      enabled: true

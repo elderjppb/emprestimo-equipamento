@@ -1,5 +1,6 @@
 package com.aula.pos.msequipamento.controller.v1;
 
+import com.aula.pos.msequipamento.dto.CondicaoRequest;
 import com.aula.pos.msequipamento.dto.EquipamentoRequest;
 import com.aula.pos.msequipamento.dto.EquipamentoResponse;
 import com.aula.pos.msequipamento.service.EquipamentoService;
@@ -43,5 +44,10 @@ public class EquipamentoController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void liberar(@PathVariable UUID id, @PathVariable UUID emprestimoId) {
         equipamentoService.liberar(id, emprestimoId);
+    }
+
+    @PutMapping("/{id}/condicao")
+    public EquipamentoResponse alterarCondicao(@PathVariable UUID id, @Valid @RequestBody CondicaoRequest request) {
+        return equipamentoService.alterarCondicao(id, request.condicao());
     }
 }

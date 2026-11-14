@@ -1,0 +1,2 @@
+ALTER TABLE tb_equipamentos
+    ADD COLUMN condicao VARCHAR(20) NOT NULL DEFAULT 'BOM' AFTER disponivel;

@@ -61,6 +61,18 @@ Resposta `201 Created`:
 
 ```http
 PATCH /api/v1/emprestimos/{id}/devolucao
+{ "condicao": "AVARIADO" }
 ```
 
-Resposta `200 OK` com `"status": "DEVOLVIDO"`.
+Resposta `200 OK` com `"status": "DEVOLVIDO"`. Antes de concluir, o msemprestimo altera a condição do
+equipamento no msequipamento via OpenFeign, protegido pelo Circuit Breaker `equipamentoService`.
+Se o msequipamento estiver indisponível, a resposta é `503` e o empréstimo continua `ATIVO`.
+
+```http
+PUT /api/v1/equipamentos/{id}/condicao
+{ "condicao": "BOM" }
+```
+
+Valores aceitos: `BOM` e `AVARIADO`. Equipamento inexistente retorna `404`.
+
+Estado do Circuit Breaker: `GET /msemprestimo/actuator/circuitbreakers` pela Gateway.

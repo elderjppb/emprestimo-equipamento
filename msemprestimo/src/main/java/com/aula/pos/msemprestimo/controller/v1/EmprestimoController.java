@@ -1,5 +1,6 @@
 package com.aula.pos.msemprestimo.controller.v1;
 
+import com.aula.pos.msemprestimo.dto.DevolucaoRequest;
 import com.aula.pos.msemprestimo.dto.EmprestimoRequest;
 import com.aula.pos.msemprestimo.dto.EmprestimoResponse;
 import com.aula.pos.msemprestimo.service.EmprestimoService;
@@ -35,7 +36,7 @@ public class EmprestimoController {
     }
 
     @PatchMapping("/{id}/devolucao")
-    public EmprestimoResponse registrarDevolucao(@PathVariable UUID id) {
-        return emprestimoService.registrarDevolucao(id);
+    public EmprestimoResponse registrarDevolucao(@PathVariable UUID id, @Valid @RequestBody DevolucaoRequest request) {
+        return emprestimoService.registrarDevolucao(id, request.condicao());
     }
 }

@@ -4,8 +4,11 @@ import com.aula.pos.msemprestimo.client.EquipamentoClient;
 import com.aula.pos.msemprestimo.client.UsuarioClient;
 import com.aula.pos.msemprestimo.dto.EmprestimoRequest;
 import com.aula.pos.msemprestimo.dto.EmprestimoResponse;
+import com.aula.pos.msemprestimo.enums.CondicaoEquipamento;
+import com.aula.pos.msemprestimo.enums.StatusEmprestimo;
 import com.aula.pos.msemprestimo.exception.ConflictException;
 import com.aula.pos.msemprestimo.exception.ResourceNotFoundException;
+import com.aula.pos.msemprestimo.gateway.EquipamentoGateway;
 import com.aula.pos.msemprestimo.mapper.EmprestimoMapper;
 import com.aula.pos.msemprestimo.model.Emprestimo;
 import com.aula.pos.msemprestimo.repository.EmprestimoRepository;
@@ -27,6 +30,7 @@ public class EmprestimoServiceImpl implements EmprestimoService {
     private final EmprestimoMapper mapper;
     private final UsuarioClient usuarioClient;
     private final EquipamentoClient equipamentoClient;
+    private final EquipamentoGateway equipamentoGateway;
 
     @Override
     public EmprestimoResponse solicitar(EmprestimoRequest request) {
@@ -54,15 +58,20 @@ public class EmprestimoServiceImpl implements EmprestimoService {
     }
 
     @Override
-    @Transactional
-    public EmprestimoResponse registrarDevolucao(UUID id) {
+    public EmprestimoResponse registrarDevolucao(UUID id, CondicaoEquipamento condicao) {
         var emprestimo = findByIdOrThrow(id);
+
+        if (emprestimo.getStatus() != StatusEmprestimo.ATIVO) {
+            throw new ConflictException("Empréstimo não está ativo: " + id);
+        }
+
+        equipamentoGateway.alterarCondicao(emprestimo.getEquipamentoId(), condicao);
+        equipamentoClient.liberar(emprestimo.getEquipamentoId(), id);
 
         if (repository.registrarDevolucao(id, LocalDateTime.now()) == 0) {
             throw new ConflictException("Empréstimo não está ativo: " + id);
         }
 
-        equipamentoClient.liberar(emprestimo.getEquipamentoId(), id);
         return mapper.toResponse(findByIdOrThrow(id));
     }
 

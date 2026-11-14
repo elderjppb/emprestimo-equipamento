@@ -2,6 +2,7 @@ package com.aula.pos.msequipamento.service.impl;
 
 import com.aula.pos.msequipamento.dto.EquipamentoRequest;
 import com.aula.pos.msequipamento.dto.EquipamentoResponse;
+import com.aula.pos.msequipamento.enums.CondicaoEquipamento;
 import com.aula.pos.msequipamento.exception.ConflictException;
 import com.aula.pos.msequipamento.exception.ResourceNotFoundException;
 import com.aula.pos.msequipamento.mapper.EquipamentoMapper;
@@ -68,6 +69,14 @@ public class EquipamentoServiceImpl implements EquipamentoService {
         if (repository.liberar(id, emprestimoId) == 0) {
             findByIdOrThrow(id);
         }
+    }
+
+    @Override
+    @Transactional
+    public EquipamentoResponse alterarCondicao(UUID id, CondicaoEquipamento condicao) {
+        var equipamento = findByIdOrThrow(id);
+        equipamento.setCondicao(condicao);
+        return mapper.toResponse(repository.save(equipamento));
     }
 
     private Equipamento findByIdOrThrow(UUID id) {

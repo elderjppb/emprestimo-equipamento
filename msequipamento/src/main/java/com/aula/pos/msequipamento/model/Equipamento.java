@@ -1,5 +1,6 @@
 package com.aula.pos.msequipamento.model;
 
+import com.aula.pos.msequipamento.enums.CondicaoEquipamento;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -31,6 +32,10 @@ public class Equipamento {
 
     @Column(nullable = false)
     private Boolean disponivel;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private CondicaoEquipamento condicao;
 
     private UUID emprestimoId;
 }
